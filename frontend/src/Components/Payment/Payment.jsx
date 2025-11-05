@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
+import api from '../../utils/api'; // Import the centralized API utility
 import './Payment.css';
 
 const Payment = ({ user }) => {
@@ -45,19 +46,12 @@ const Payment = ({ user }) => {
     }
   }, [user]);
 
-  // Fetch payment history WITH TOKEN
   const fetchPaymentHistory = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost:5000/api/payments/user/${user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
+      const response = await api.get(`/payments/user/${user.id}`);
+      const data = response.data;
       
-      if (response.ok) {
+      if (response.status === 200) {
         setPaymentHistory(data.payments || []);
       } else {
         console.error('Error fetching payment history:', data.message);
@@ -147,14 +141,9 @@ const Payment = ({ user }) => {
     return newErrors;
   };
 
-  // Handle form submission WITH TOKEN
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log('User object:', user);
-    console.log('User ID:', user?.id);
-    
-    // Validate form
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -165,22 +154,11 @@ const Payment = ({ user }) => {
     setErrors({});
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('https://localhost:5000/api/payments/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData) // Remove userId - server gets it from token
-      });
+      const response = await api.post('/payments/create', formData);
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status === 201) {
         alert(`Payment initiated successfully!\nTransaction Reference: ${data.payment.transactionReference}`);
-        
-        // Reset form
         setFormData({
           payeeAccountNumber: '',
           amount: '',
@@ -191,21 +169,19 @@ const Payment = ({ user }) => {
         
         // Refresh payment history
         fetchPaymentHistory();
-      } else {
-        if (data.errors) {
+      }
+    } catch (error) {
+      const errorMessage = error.response ? error.response.data.message : error.message;
+      alert(`Error: ${errorMessage}`);
+      if (error.response && error.response.data.errors) {
           const errorObj = {};
-          data.errors.forEach(err => {
+        error.response.data.errors.forEach(err => {
             if (err.includes('account')) errorObj.payeeAccountNumber = err;
             else if (err.includes('amount')) errorObj.amount = err;
             else if (err.includes('SWIFT')) errorObj.swiftCode = err;
           });
           setErrors(errorObj);
-        } else {
-          alert(`Error: ${data.message}`);
-        }
       }
-    } catch (error) {
-      alert(`Network error: ${error.message}`);
     } finally {
       setLoading(false);
     }

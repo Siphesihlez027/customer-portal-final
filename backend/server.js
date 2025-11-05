@@ -9,6 +9,7 @@ const rateLimit = require('express-rate-limit'); // Rate limiting
 const session = require('express-session'); // Session management
 const MongoStore = require('connect-mongo'); // MongoDB session store
 const csurf = require('csurf'); // CSRF protection
+const isAuthenticated = require('./middleware/isAuthenticated');
 require('dotenv').config();
 
 const app = express();
@@ -92,9 +93,16 @@ app.use((err, req, res, next) => {
 });
 
 // ===== Routes =====
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/employee/auth', require('./routes/employeeAuth'));
-app.use('/api/payments', require('./routes/payments'));
+  // Public Routes (No session needed)
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/employee/auth', require('./routes/employeeAuth'));
+  app.use('/api/logout', require('./routes/logout')); // Add the logout route
+  
+
+  // Protected Routes (Session is required)
+  // We add 'isAuthenticated' middleware before the route handler
+  app.use('/api/payments', isAuthenticated, require('./routes/payments'));
+  app.use('/api/employee-payments', isAuthenticated, require('./routes/employeePayments')); // Add the employee payments route
 
 // ===== MongoDB Connection =====
 mongoose.connect(process.env.MONGODB_URI, {

@@ -26,17 +26,20 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        employeeId: employee.employeeId,
-        role: employee.role,
-        type: 'employee'
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '8h' }
-    );
+    // 1. Create the session object
+      // We use 'user' as a standard key for both employees and customers
+    req.session.user = {
+      id: employee._id,
+      employeeId: employee.employeeId,
+      fullName: employee.fullName,
+      role: employee.role,
+      type: 'employee'
+    };
 
+    // 2. Save the session
+    req.session.save();
+
+    // 3. Send back the response (NO token)
     res.json({
       message: 'Employee login successful',
       employee: {
@@ -45,8 +48,7 @@ router.post('/login', async (req, res) => {
         fullName: employee.fullName,
         role: employee.role,
         department: employee.department
-      },
-      token: token
+      }
     });
 
   } catch (error) {

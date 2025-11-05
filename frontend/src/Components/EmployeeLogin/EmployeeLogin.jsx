@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api'; // Import the centralized API utility
 import './EmployeeLogin.css';
 
 import employee_icon from '../Assets/person.png';
@@ -26,29 +27,26 @@ const EmployeeLogin = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('https://localhost:5000/api/employee/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
+       // Use the centralized API utility
+      const response = await api.post('/employee/auth/login', formData);
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (response.ok) {
-        // Store employee data and token
-        localStorage.setItem('token', data.token);
+      if (response.status === 200) {
         localStorage.setItem('userData', JSON.stringify(data.employee));
         localStorage.setItem('userType', 'employee');
-        
-        alert('Employee login successful!');
+
+        // The navigation to a new page is enough feedback.
+        alert('Employee login successful!'); 
         navigate('/employee-payments');
-      } else {
+              } else {
+        // Axios wraps errors in `response.data`
         alert(`Error: ${data.message}`);
       }
     } catch (error) {
-      alert(`Network error: ${error.message}`);
+      // Handle axios-specific error structure
+      const errorMessage = error.response ? error.response.data.message : error.message;
+      alert(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

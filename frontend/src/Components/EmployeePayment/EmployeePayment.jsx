@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api'; // Import the centralized API utility
 import './EmployeePayment.css';
 
 const EmployeePayment = () => {
@@ -19,31 +20,19 @@ const EmployeePayment = () => {
       setLoading(true);
       setError('');
       
-      const token = localStorage.getItem('token');
-      console.log('Fetching payments with token:', token ? 'Token exists' : 'No token');
-      
-      const response = await fetch('https://localhost:5000/api/payments', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get('/payments');
 
-      const data = await response.json();
-      console.log('Payments API response:', data);
+      const data = response.data;
 
-      if (response.ok) {
+      if (response.status === 200) {
         setPayments(data.payments || []);
-        console.log(`Set ${data.payments?.length || 0} payments`);
       } else {
         setError(data.message || 'Failed to fetch payments');
-        console.error('Error fetching payments:', data.message);
         setPayments([]);
       }
     } catch (error) {
-      console.error('Network error fetching payments:', error);
-      setError('Network error: ' + error.message);
+      const errorMessage = error.response ? error.response.data.message : error.message;
+      setError(errorMessage);
       setPayments([]);
     } finally {
       setLoading(false);
@@ -56,26 +45,17 @@ const EmployeePayment = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost:5000/api/payments/verify/${paymentId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ action: 'complete' })
-      });
+      const response = await api.post(`/payments/verify/${paymentId}`, { action: 'complete' });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status === 200) {
         alert('Payment approved successfully!');
         fetchAllPayments();
       } else {
-        alert(`Error: ${data.message}`);
+        alert(`Error: ${response.data.message}`);
       }
     } catch (error) {
-      alert(`Network error: ${error.message}`);
+      const errorMessage = error.response ? error.response.data.message : error.message;
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -85,26 +65,17 @@ const EmployeePayment = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`https://localhost:5000/api/payments/verify/${paymentId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ action: 'fail' })
-      });
+      const response = await api.post(`/payments/verify/${paymentId}`, { action: 'fail' });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status === 200) {
         alert('Payment rejected successfully!');
         fetchAllPayments();
       } else {
-        alert(`Error: ${data.message}`);
+        alert(`Error: ${response.data.message}`);
       }
     } catch (error) {
-      alert(`Network error: ${error.message}`);
+      const errorMessage = error.response ? error.response.data.message : error.message;
+      alert(`Error: ${errorMessage}`);
     }
   };
 

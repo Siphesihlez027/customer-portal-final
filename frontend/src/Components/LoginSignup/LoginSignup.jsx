@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';   // import navigate
+import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api'; // Import the centralized API utility
 import './LoginSignup.css';
 
 // Importing the images (icons) used in the form inputs
@@ -10,10 +11,17 @@ import id_icon from '../Assets/id.png';
 
 const LoginSignup = ({ onLoginSuccess }) => {
   const [action, setAction] = useState("Sign Up");
+  const [formData, setFormData] = useState({
+    fullName: '',
+    idNumber: '',
+    username: '',
+    accountNumber: '',
+    password: ''
+  });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const navigate = useNavigate();   // setup navigation
+  const navigate = useNavigate();
 
   // Validation patterns (matching backend)
   const patterns = {
@@ -33,128 +41,90 @@ const LoginSignup = ({ onLoginSuccess }) => {
     password: 'Password must be 8-20 characters with uppercase, lowercase, digit, and special character'
   };
 
-  // Validate single field
   const validateField = (name, value) => {
     if (!patterns[name]) return true;
     return patterns[name].test(value);
   };
 
-  // Validate all fields
-  const validateForm = (formData) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (value && !validateField(name, value)) {
+      setErrors(prev => ({ ...prev, [name]: validationMessages[name] }));
+    } else {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = () => {
     const newErrors = {};
     Object.keys(formData).forEach(key => {
-      if (formData[key] && !validateField(key, formData[key])) {
-        newErrors[key] = validationMessages[key];
-      } else if (!formData[key] && key !== 'fullName' && key !== 'idNumber') {
-        newErrors[key] = `${key.charAt(0).toUpperCase() + key.slice(1)} is required`;
+      if (action === "Sign Up" || (key !== 'fullName' && key !== 'idNumber')) {
+        if (!formData[key]) {
+          newErrors[key] = `${key.charAt(0).toUpperCase() + key.slice(1)} is required`;
+        } else if (!validateField(key, formData[key])) {
+          newErrors[key] = validationMessages[key];
+        }
       }
     });
-    if (action === "Sign Up") {
-      if (!formData.fullName) newErrors.fullName = 'Full name is required';
-      if (!formData.idNumber) newErrors.idNumber = 'ID number is required';
-    }
     return newErrors;
   };
 
-  // Clear all form fields
-  const clearFormFields = () => {
-    document.querySelectorAll('input').forEach(input => {
-      input.value = '';
-    });
-  };
-
-  // Handle form submission
   const handleSubmit = async () => {
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
     setLoading(true);
     setErrors({});
     setSuccessMessage('');
 
-    const formData = {
-      username: document.querySelector('input[placeholder="Username"]')?.value || '',
-      accountNumber: document.querySelector('input[placeholder="Account Number"]')?.value || '',
-      password: document.querySelector('input[placeholder="Password"]')?.value || ''
-    };
-
-    if (action === "Sign Up") {
-      formData.fullName = document.querySelector('input[placeholder="Name"]')?.value || '';
-      formData.idNumber = document.querySelector('input[placeholder="ID Number"]')?.value || '';
-    }
-
-    // Client-side validation
-    const validationErrors = validateForm(formData);
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch(`https://localhost:5000/api/auth/${action === "Sign Up" ? 'signup' : 'login'}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
+      const endpoint = action === "Sign Up" ? '/auth/signup' : '/auth/login';
+      const response = await api.post(endpoint, formData);
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status === 200 || response.status === 201) {
         if (action === "Sign Up") {
-          // After signup, switch to login mode
-          setSuccessMessage('Account created successfully! Please login with your new credentials.');
+          setSuccessMessage('Account created successfully! Please login.');
           setAction("Login");
-          clearFormFields();
-          setErrors({});
-        } else {
-          // Login success
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('userData', JSON.stringify(data.user));
-          localStorage.setItem('userType', 'customer');
-          
-          alert('Login successful!');
-          
-          if (onLoginSuccess) onLoginSuccess(data.user);
-
-          // redirect to Payment page with user data
-          navigate('/payments', { state: { user: data.user } });
-        }
-      } else {
-        if (data.errors) {
-          const errorObj = {};
-          data.errors.forEach(err => {
-            if (err.includes('name')) errorObj.fullName = err;
-            else if (err.includes('ID')) errorObj.idNumber = err;
-            else if (err.includes('Username')) errorObj.username = err;
-            else if (err.includes('Account')) errorObj.accountNumber = err;
-            else if (err.includes('Password')) errorObj.password = err;
+          setFormData({
+            fullName: '',
+            idNumber: '',
+            username: '',
+            accountNumber: '',
+            password: ''
           });
-          setErrors(errorObj);
         } else {
-          alert(`Error: ${data.message}`);
+          localStorage.setItem('userData', JSON.stringify(data.user)); // This is still useful!
+
+          alert('Login successful!'); 
+          if (onLoginSuccess) onLoginSuccess(data.user);
+          navigate('/payments', { state: { user: data.user } });
         }
       }
     } catch (error) {
-      alert(`Network error: ${error.message}`);
+      const errorMessage = error.response ? error.response.data.message : error.message;
+      alert(`Error: ${errorMessage}`);
+      if (error.response && error.response.data.errors) {
+        const errorObj = {};
+        error.response.data.errors.forEach(err => {
+          if (err.includes('name')) errorObj.fullName = err;
+          else if (err.includes('ID')) errorObj.idNumber = err;
+          else if (err.includes('Username')) errorObj.username = err;
+          else if (err.includes('Account')) errorObj.accountNumber = err;
+          else if (err.includes('Password')) errorObj.password = err;
+        });
+        setErrors(errorObj);
+      }
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Handle input change
-  const handleInputChange = (e, fieldName) => {
-    const value = e.target.value;
-    if (successMessage) setSuccessMessage('');
-    if (errors[fieldName]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[fieldName];
-        return newErrors;
-      });
-    }
-    if (value && !validateField(fieldName, value)) {
-      setErrors(prev => ({
-        ...prev,
-        [fieldName]: validationMessages[fieldName]
-      }));
     }
   };
 
@@ -162,7 +132,13 @@ const LoginSignup = ({ onLoginSuccess }) => {
     setAction(newAction);
     setErrors({});
     setSuccessMessage('');
-    clearFormFields();
+    setFormData({
+      fullName: '',
+      idNumber: '',
+      username: '',
+      accountNumber: '',
+      password: ''
+    });
   };
 
   return (
@@ -185,8 +161,10 @@ const LoginSignup = ({ onLoginSuccess }) => {
                 <img src={user_icon} alt="user icon" style={{ width: "21px", height: "25px" }}/>
                 <input 
                   type="text" 
+                  name="fullName"
                   placeholder='Name'
-                  onChange={(e) => handleInputChange(e, 'fullName')}
+                  value={formData.fullName}
+                  onChange={handleInputChange}
                   maxLength="50"
                 />
               </div>
@@ -198,8 +176,10 @@ const LoginSignup = ({ onLoginSuccess }) => {
                 <img src={id_icon} alt="id icon" style={{ width: "21px", height: "25px" }}/>
                 <input 
                   type="text" 
+                  name="idNumber"
                   placeholder='ID Number'
-                  onChange={(e) => handleInputChange(e, 'idNumber')}
+                  value={formData.idNumber}
+                  onChange={handleInputChange}
                   maxLength="13"
                 />
               </div>
@@ -213,8 +193,10 @@ const LoginSignup = ({ onLoginSuccess }) => {
             <img src={user_icon} alt="username icon" style={{ width: "21px", height: "25px" }}/>
             <input 
               type="text" 
+              name="username"
               placeholder='Username'
-              onChange={(e) => handleInputChange(e, 'username')}
+              value={formData.username}
+              onChange={handleInputChange}
               maxLength="20"
             />
           </div>
@@ -226,8 +208,10 @@ const LoginSignup = ({ onLoginSuccess }) => {
             <img src={account_icon} alt="account icon" style={{ width: "21px", height: "25px" }}/>
             <input 
               type="text" 
+              name="accountNumber"
               placeholder='Account Number'
-              onChange={(e) => handleInputChange(e, 'accountNumber')}
+              value={formData.accountNumber}
+              onChange={handleInputChange}
               maxLength="12"
             />
           </div>
@@ -239,8 +223,10 @@ const LoginSignup = ({ onLoginSuccess }) => {
             <img src={password_icon} alt="password icon" style={{ width: "18px", height: "20px" }}/>
             <input 
               type="password" 
+              name="password"
               placeholder='Password'
-              onChange={(e) => handleInputChange(e, 'password')}
+              value={formData.password}
+              onChange={handleInputChange}
               maxLength="20"
             />
           </div>
