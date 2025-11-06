@@ -461,6 +461,20 @@
   background: #138496;
 }
 
+.add-customer-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-customer-btn:hover {
+  background: #0069d9;
+}
+
 .no-payments .sub-message {
   font-size: 14px;
   color: #666;

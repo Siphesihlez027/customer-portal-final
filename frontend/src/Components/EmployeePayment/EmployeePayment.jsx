@@ -86,6 +86,10 @@ const EmployeePayment = () => {
     navigate('/');
   };
 
+  const handleAddCustomer = () => {
+    navigate('/auth/signup');
+  };
+
   // Filter payments based on selected filter
   const filteredPayments = filter === 'all' 
     ? payments 
@@ -142,6 +146,9 @@ const EmployeePayment = () => {
           <p>Welcome, {employee.fullName} ({employee.role || 'Employee'})</p>
         </div>
         <div className="header-actions">
+          <button className="add-customer-btn" onClick={handleAddCustomer}>
+            Add Customer
+          </button>
           <button className="refresh-btn" onClick={fetchAllPayments}>
             Refresh
           </button>

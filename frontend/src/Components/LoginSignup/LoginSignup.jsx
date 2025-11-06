@@ -9,8 +9,8 @@ import password_icon from '../Assets/password.png';
 import account_icon from '../Assets/account.png';
 import id_icon from '../Assets/id.png';
 
-const LoginSignup = ({ onLoginSuccess }) => {
-  const [action, setAction] = useState("Sign Up");
+const LoginSignup = ({ onLoginSuccess, initialAction = "Login" }) => {
+  const [action, setAction] = useState(initialAction);
   const [formData, setFormData] = useState({
     fullName: '',
     idNumber: '',
@@ -92,8 +92,7 @@ const LoginSignup = ({ onLoginSuccess }) => {
 
       if (response.status === 200 || response.status === 201) {
         if (action === "Sign Up") {
-          setSuccessMessage('Account created successfully! Please login.');
-          setAction("Login");
+          setSuccessMessage('Account created successfully!');
           setFormData({
             fullName: '',
             idNumber: '',
@@ -139,6 +138,10 @@ const LoginSignup = ({ onLoginSuccess }) => {
       accountNumber: '',
       password: ''
     });
+  };
+
+  const handleCancel = () => {
+    navigate('/employee-payments');
   };
 
   return (
@@ -241,23 +244,23 @@ const LoginSignup = ({ onLoginSuccess }) => {
       </div>
 
       {/* Buttons */}
-      <div className='submit-container'>
-        {action === "Login" && (
-          <div className="submit gray" onClick={() => handleModeSwitch("Sign Up")}>
-            Sign Up
-          </div>
-        )}
-
+      <div className='submit-container'>       
         <div className={`submit ${loading ? 'loading' : ''}`} onClick={!loading ? handleSubmit : undefined}>
           {loading ? 'Processing...' : action}
         </div>
 
         {action === "Sign Up" && (
-          <div className="submit gray" onClick={() => handleModeSwitch("Login")}>
-            Login
+          <div className="submit gray" onClick={handleCancel}>
+            Cancel
           </div>
         )}
       </div>
+
+        {action === "Login" && (
+            <div className='home-link' onClick={() => navigate('/')}>
+                Back to Home
+            </div>
+        )}
     </div>
   );
 };

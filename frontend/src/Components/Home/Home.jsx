@@ -14,7 +14,7 @@ const Home = () => {
       </div>
 
       <div className='portal-selection'>
-        <div className='portal-card' onClick={() => navigate('/customer-login')}>
+        <div className='portal-card' onClick={() => navigate('/auth/login')}>
           <div className='portal-icon'>👤</div>
           <h3>Customer Portal</h3>
           <p>Make international payments and track your transactions</p>
