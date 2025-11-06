@@ -97,12 +97,15 @@ router.post('/signup', async (req, res) => {
 
     await user.save();
 
-    // Store user in session
-    req.session.user = {
-      id: user._id,
-      username: user.username,
-      type: 'customer'
-    };
+    // If the user creating the account is not an employee, create a new session
+    if (!req.session.user || req.session.user.type !== 'employee') {
+      // Store user in session for immediate login after signup
+      req.session.user = {
+        id: user._id,
+        username: user.username,
+        type: 'customer'
+      };
+    }
 
 
     // Return response
