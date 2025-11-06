@@ -1,0 +1,58 @@
+version: 2.1
+orbs:
+  sonarqube: circleci/sonarqube@2.0.0
+
+jobs:
+  build_and_scan:
+    # Use a modern Node.js image
+    docker:
+      - image: cimg/node:18.0
+    
+    steps:
+      - checkout
+      
+      # --- Backend Steps ---
+      - run:
+          name: "Install Backend Dependencies"
+          command: |
+            echo "Installing backend dependencies..."
+            cd backend # <-- Adjust if your backend folder is named differently
+            npm install
+          
+      - run:
+          name: "Run Backend Tests (with coverage)"
+          command: |
+            echo "Running backend tests..."
+            cd backend # <-- Adjust path
+            # This assumes 'npm test' runs Jest with coverage
+            # If not, use 'npm test -- --coverage --watchAll=false'
+            npm test
+          
+      # --- Frontend (React Native) Steps ---
+      - run:
+          name: "Install Frontend Dependencies"
+          command: |
+            echo "Installing frontend dependencies..."
+            cd frontend # <-- Adjust if your frontend folder is named differently
+            npm install
+          
+      - run:
+          name: "Run Frontend Tests (with coverage)"
+          command: |
+            echo "Running frontend tests..."
+            cd frontend # <-- Adjust path
+            # This assumes 'npm test' is set up to generate coverage
+            npm test
+          
+      # --- SonarQube Scan ---
+      # This step runs AFTER both test runs are complete
+      - sonarqube/scan:
+          project_key: $SONAR_PROJECT_KEY
+          organization: $SONAR_ORGANIZATION
+          sonar_token: $SONAR_TOKEN
+          github_token: $GITHUB_TOKEN
+          
+workflows:
+  main_workflow:
+    jobs:
+      - build_and_scan
