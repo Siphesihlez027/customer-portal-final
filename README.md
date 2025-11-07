@@ -95,18 +95,22 @@ You will need to run the backend and frontend in two separate terminals.
 
 - **Test Run-Throughs**
 
-Test employee = 
-{
-  employeeId: EMP001
-  password: password123
-}
+ Test Employee:
+  ```json
+  {
+    "employeeId": "EMP001",
+    "password": "password123"
+  }
+  ```
 
-Test Customer = 
-{
-  username: zoe_johnson
-  accountNumber: 8901237856
-  password: Password@123
-}
+  Test Customer:
+  ```json
+  {
+    "username": "zoe_johnson",
+    "accountNumber": "8901237856",
+    "password": "Password@123"
+  }
+  ```
 
 ## 4. Available Frontend Scripts
 
