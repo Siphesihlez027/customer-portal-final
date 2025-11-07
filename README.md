@@ -98,7 +98,7 @@ You will need to run the backend and frontend in two separate terminals.
  Test Employee:
   ```json
   {
-    "employeeId": "EMP001",
+    "employeeId": "EMP002",
     "password": "password123"
   }
   ```
