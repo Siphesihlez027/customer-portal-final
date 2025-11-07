@@ -7,6 +7,13 @@ const router = express.Router();
 router.post('/login', async (req, res) => {
   try {
     const { employeeId, password } = req.body;
+    // Check if there are any employees in the database
+    const employeeCount = await Employee.countDocuments();
+    if (employeeCount === 0) {
+      return res.status(404).json({
+        message: 'No employees found in the system. Please seed the database.'
+      });
+    }
 
     // Find employee by employeeId
     const employee = await Employee.findOne({ employeeId });
